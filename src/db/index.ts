@@ -27,6 +27,34 @@ export interface Progress {
   updateTime: number;       // Timestamp of last update
 }
 
+export interface ServerBook {
+  serverBookId: number;
+  title: string;
+  author: string;
+  coverUrl?: string;
+  description?: string;
+  tags?: string;
+  publisher?: string;
+  status?: number;
+  addTime: number;
+  localFileName?: string;
+}
+
+export interface ServerChapter {
+  chapterId: number;
+  serverBookId: number;
+  chapterTitle: string;
+  sortOrder: number;
+  updateTime?: number;
+}
+
+export interface ServerChapterContent {
+  chapterId: number;
+  serverBookId: number;
+  content: string;
+  updateTime?: number;
+}
+
 /**
  * 将 UnifiedBook 转换为 Book (用于存储)
  */
@@ -66,6 +94,9 @@ export function bookToUnifiedBook(book: Book): Partial<UnifiedBook> {
 class LibraryDatabase extends Dexie {
   books!: Table<Book>;
   progress!: Table<Progress>;
+  serverBooks!: Table<ServerBook>;
+  serverChapters!: Table<ServerChapter>;
+  serverChapterContents!: Table<ServerChapterContent>;
 
   constructor() {
     super('LibraryDatabase');
@@ -94,6 +125,14 @@ class LibraryDatabase extends Dexie {
           progress.chapterTitle = `第 ${progress.chapterIndex + 1} 章`;
         }
       });
+    });
+
+    this.version(4).stores({
+      books: '++id, title, format, addTime, chapterCount',
+      progress: '++id, bookId, updateTime, chapterTitle',
+      serverBooks: 'serverBookId, addTime, title',
+      serverChapters: 'chapterId, serverBookId, updateTime, sortOrder',
+      serverChapterContents: 'chapterId, serverBookId'
     });
   }
 }
