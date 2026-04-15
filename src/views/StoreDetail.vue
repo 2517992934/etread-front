@@ -185,6 +185,7 @@ onMounted(async () => {
     }
   } catch {}
 
+
   await loadReviews(1);
 });
 
