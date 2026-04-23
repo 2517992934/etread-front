@@ -20,11 +20,11 @@
           <button 
             class="nav-tab" 
             :class="{ active: activeTab === 'store' }"
-            @click="activeTab = 'store'"
+            @click="(activeTab = 'store', loadMyBooks())"
           >
             <el-icon><ShoppingCart /></el-icon>
             <span>书城</span>
-            <span class="coming-soon">即将上线</span>
+
           </button>
           <button 
             class="nav-tab" 
@@ -33,9 +33,17 @@
           >
             <el-icon><Upload /></el-icon>
             <span>上传</span>
-            <span class="coming-soon">即将上线</span>
+
           </button>
         </nav>
+        <div class="user-section">
+          <template v-if="auth.user">
+            <el-avatar :src="auth.user.avatar" :size="40" />
+            <span class="user-nickname">{{ auth.user.nickname }}</span>
+            <el-button class="auth-btn" @click="onLogout"><span>退出</span></el-button>
+          </template>
+          <el-button v-else class="auth-btn" @click="router.push('/auth')"><span>登录/注册</span></el-button>
+        </div>
       </div>
     </header>
 
@@ -144,29 +152,68 @@
         </div>
       </div>
 
-      <!-- 书城视图（占位） -->
-      <div v-show="activeTab === 'store'" class="placeholder-view">
-        <el-icon><ShoppingCart /></el-icon>
-        <h2>书城功能</h2>
-        <p>即将上线，敬请期待</p>
+      <!-- 书城视图：搜索 + 列表 -->
+  <div v-show="activeTab === 'store'" class="store-view">
+    <div class="store-toolbar">
+      <el-input v-model="storeSearch.title" placeholder="书名" :prefix-icon="Search" clearable />
+      <el-input v-model="storeSearch.author" placeholder="作者" clearable />
+      <el-select v-model="storeSearch.minscore" placeholder="最低评分" clearable>
+        <el-option v-for="s in ratingOptions" :key="`min_${s}`" :label="s.toFixed(1)" :value="s" />
+      </el-select>
+      <el-select v-model="storeSearch.maxscore" placeholder="最高评分" clearable>
+        <el-option v-for="s in ratingOptions" :key="`max_${s}`" :label="s.toFixed(1)" :value="s" />
+      </el-select>
+      <el-input v-model="storeSearch.tagsStr" placeholder="标签（逗号分隔）" clearable />
+      <el-button class="auth-btn" :loading="storeSearching" @click="runStoreSearch(1)">搜索</el-button>
+      <el-button class="auth-btn" :disabled="storeSearching" @click="resetStoreSearch">重置</el-button>
+    </div>
+    <div class="store-grid" v-loading="storeSearching">
+      <div v-for="item of storeVisibleItems" :key="item.serverBookId" class="store-item" @click="openStoreDetail(item.serverBookId)">
+        <div class="store-cover">
+          <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title" />
+          <div v-else class="default-cover">
+            <span class="cover-letter">{{ item.title[0]?.toUpperCase() || '?' }}</span>
+          </div>
+        </div>
+        <div class="store-meta">
+          <div class="title" :title="item.title">{{ item.title }}</div>
+          <div class="author" :title="item.author || '佚名'">{{ item.author || '佚名' }}</div>
+        </div>
       </div>
+      <div v-if="storeVisibleItems.length === 0 && !storeSearching" class="empty-state">
+        <el-icon><Reading /></el-icon>
+        <h3>暂无书籍</h3>
+        <p>可尝试调整搜索条件，或清空条件后重新搜索</p>
+      </div>
+    </div>
+    <div class="store-pagination" v-if="storePageCount > 1">
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :page-count="storePageCount"
+        :page-size="storePageSize"
+        :current-page="storePage"
+        @current-change="onStorePageChange"
+      />
+    </div>
+  </div>
 
-      <!-- 上传视图（占位） -->
-      <div v-show="activeTab === 'upload'" class="placeholder-view">
-        <el-icon><Upload /></el-icon>
-        <h2>上传功能</h2>
-        <p>即将上线，敬请期待</p>
-      </div>
+      <!-- 上传视图：直接嵌入上传页面 -->
+  <div v-show="activeTab === 'upload'" class="upload-embed">
+    <StoreUpload @uploaded="onUploadDone" />
+  </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUnifiedLibrary } from '@/composables/useUnifiedLibrary';
 import { useProgress } from '@/composables/useProgress';
+import { useAuthStore } from '@/store/auth';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { logout } from '@/api/auth';
 import { 
   Upload, 
   Delete, 
@@ -174,12 +221,161 @@ import {
   Reading, 
   ShoppingCart,
   FolderOpened,
-  VideoPlay
+  VideoPlay,
+  Search
 } from '@element-plus/icons-vue';
+import { searchBooks } from '@/api/book';
+import { db, type ServerBook } from '@/db';
+import StoreUpload from '@/views/StoreUpload.vue';
 
 const { books, loading, importing, importProgress, loadBooks, importBook, deleteBook } = useUnifiedLibrary();
 const { getProgressPercentage, getProgressChapterTitle } = useProgress();
 const router = useRouter();
+const auth = useAuthStore();
+const serverBooks = ref<ServerBook[]>([]);
+
+const storeSearching = ref(false);
+const storePage = ref(1);
+const storePageSize = 10;
+const storeHasNext = ref(false);
+const ratingOptions = Array.from({ length: 11 }, (_, i) => i * 0.5);
+
+const storeSearch = ref<{
+  title: string;
+  author: string;
+  minscore: number | null;
+  maxscore: number | null;
+  tagsStr: string;
+}>({
+  title: '',
+  author: '',
+  minscore: null,
+  maxscore: null,
+  tagsStr: ''
+});
+
+function openStoreDetail(id: number) {
+  router.push(`/store/detail/${id}`);
+}
+
+async function loadMyBooks() {
+  await runStoreSearch(1);
+}
+
+const storeVisibleItems = computed(() => serverBooks.value.filter(b => (b.status ?? 1) === 1));
+
+const storePageCount = computed(() => {
+  if (storePage.value <= 1) return storeHasNext.value ? 2 : 1;
+  return storeHasNext.value ? storePage.value + 1 : storePage.value;
+});
+
+function normalizeTags(v: string) {
+  const raw = (v || '')
+    .split(/[,，]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const normalized = raw.map((t) => {
+    if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) return t;
+    return `"${t}"`;
+  });
+
+  return Array.from(new Set(normalized));
+}
+
+async function runStoreSearch(page = 1) {
+  storeSearching.value = true;
+  try {
+    const tags = normalizeTags(storeSearch.value.tagsStr);
+
+    let minscore: number | null = typeof storeSearch.value.minscore === 'number' ? storeSearch.value.minscore : null;
+    let maxscore: number | null = typeof storeSearch.value.maxscore === 'number' ? storeSearch.value.maxscore : null;
+    if (typeof minscore === 'number' && typeof maxscore === 'number' && minscore > maxscore) {
+      const t = minscore;
+      minscore = maxscore;
+      maxscore = t;
+    }
+
+    const dto: any = {
+      title: storeSearch.value.title?.trim() || undefined,
+      author: storeSearch.value.author?.trim() || undefined,
+      minscore: typeof minscore === 'number' ? minscore : undefined,
+      maxscore: typeof maxscore === 'number' ? maxscore : undefined,
+      tags: tags.length ? tags : undefined
+    };
+
+    const res = await searchBooks(dto, page, storePageSize);
+    if (res.data?.code !== 200) {
+      ElMessage.error(res.data?.msg || '搜索失败');
+      serverBooks.value = [];
+      storeHasNext.value = false;
+      storePage.value = 1;
+      return;
+    }
+
+    const vo = res.data?.data;
+    const list: any[] = (vo?.resultBooks || vo?.ResultBooks || []) as any[];
+    const mapped: ServerBook[] = list
+      .filter((b) => (b?.status ?? 1) === 1)
+      .map((b) => {
+        const addTime = b.createTime ? Date.parse(b.createTime) : Date.now();
+        return {
+          serverBookId: Number(b.id),
+          title: b.title,
+          author: b.author,
+          coverUrl: b.coverUrl || b.cover_url || undefined,
+          description: b.description || undefined,
+          tags: b.tags || undefined,
+          publisher: b.publisher || undefined,
+          status: typeof b.status === 'number' ? b.status : undefined,
+          addTime: Number.isFinite(addTime) ? addTime : Date.now()
+        };
+      })
+      .filter((b) => Number.isFinite(b.serverBookId) && b.serverBookId > 0);
+
+    for (const b of mapped) {
+      try {
+        await db.serverBooks.put(b);
+      } catch {}
+    }
+
+    serverBooks.value = mapped;
+    storeHasNext.value = mapped.length >= storePageSize;
+    storePage.value = page;
+  } catch (e: any) {
+    ElMessage.error(e?.message ? String(e.message) : '搜索失败');
+  } finally {
+    storeSearching.value = false;
+  }
+}
+
+function resetStoreSearch() {
+  storeSearch.value = { title: '', author: '', minscore: null, maxscore: null, tagsStr: '' };
+  runStoreSearch(1);
+}
+
+function onStorePageChange(p: number) {
+  runStoreSearch(p);
+}
+
+function onUploadDone() {
+  activeTab.value = 'store';
+  runStoreSearch(1);
+}
+
+async function onLogout(): Promise<void> {
+  try {
+    const token = auth.user?.token || localStorage.getItem('auth_token') || '';
+    if (token) {
+      await logout(token);
+    }
+    auth.clear();
+    ElMessage.success('已退出');
+  } catch (error) {
+    auth.clear();
+    ElMessage.success('已退出');
+  }
+}
 
 const fileInput = ref<HTMLInputElement | null>(null);
 const progressMap = ref<Map<number, number>>(new Map());
@@ -187,6 +383,13 @@ const progressTextMap = ref<Map<number, string>>(new Map());
 const coverUrlCache = ref<Map<number, string>>(new Map());
 const isDragOver = ref(false);
 const activeTab = ref('library');
+
+watch(activeTab, (v) => {
+  if (v === 'store') {
+    runStoreSearch(1);
+  }
+});
+
 
 /**
  * Get or create object URL for book cover
@@ -449,6 +652,12 @@ onMounted(async () => {
   try {
     await loadBooks();
     await loadAllProgress();
+    const def = localStorage.getItem('bookshelf_default_tab');
+    if (def) {
+      activeTab.value = def;
+      localStorage.removeItem('bookshelf_default_tab');
+    }
+    if (activeTab.value === 'store') await loadMyBooks();
   } catch (error) {
     console.error('Failed to initialize bookshelf:', error);
     ElMessage.error('Failed to load bookshelf. Please refresh the page.');
@@ -521,6 +730,157 @@ onUnmounted(() => {
 .nav-tabs {
   display: flex;
   gap: 8px;
+}
+
+/* 书城样式 */
+.store-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+  border: 1px solid rgba(255,255,255,.35);
+  box-shadow: 0 10px 30px rgba(16,24,40,.12);
+  backdrop-filter: blur(10px);
+}
+
+.store-toolbar :deep(.el-input),
+.store-toolbar :deep(.el-select) {
+  width: 180px;
+}
+
+.store-toolbar :deep(.el-input__wrapper),
+.store-toolbar :deep(.el-select__wrapper) {
+  border-radius: 12px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 4px 14px rgba(102,126,234,.12);
+  border: 1px solid rgba(102,126,234,.18);
+  padding-left: 10px;
+  transition: all .25s ease;
+}
+
+.store-toolbar :deep(.el-input__inner),
+.store-toolbar :deep(.el-select__input) {
+  font-weight: 600;
+  color: #3a3f55;
+}
+
+.store-toolbar :deep(.el-input__wrapper.is-focus),
+.store-toolbar :deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 2px rgba(102,126,234,.22), 0 8px 18px rgba(102,126,234,.2);
+  border-color: rgba(102,126,234,.45);
+}
+.store-grid {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.store-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.store-cover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.store-cover img { width: 100%; height: 100%; object-fit: cover; }
+.store-meta .title { font-weight: 700; color: #303133; }
+.store-meta .author { font-size: 12px; color: #909399; }
+.store-item { cursor: pointer; }
+
+.store-pagination {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
+  border: 1px solid rgba(255,255,255,.35);
+  box-shadow: 0 10px 24px rgba(16,24,40,.1);
+  backdrop-filter: blur(8px);
+}
+
+.store-pagination :deep(.el-pagination.is-background .btn-prev),
+.store-pagination :deep(.el-pagination.is-background .btn-next),
+.store-pagination :deep(.el-pagination.is-background .el-pager li) {
+  min-width: 34px;
+  height: 34px;
+  line-height: 34px;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #5a5f75;
+  background: rgba(255,255,255,.9);
+  border: 1px solid rgba(102,126,234,.15);
+  box-shadow: 0 3px 10px rgba(102,126,234,.12);
+}
+
+.store-pagination :deep(.el-pagination.is-background .el-pager li.is-active) {
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+  box-shadow: 0 8px 16px rgba(102,126,234,.35);
+}
+
+.store-pagination :deep(.el-pagination.is-background .btn-prev:hover),
+.store-pagination :deep(.el-pagination.is-background .btn-next:hover),
+.store-pagination :deep(.el-pagination.is-background .el-pager li:hover) {
+  color: #667eea;
+  transform: translateY(-1px);
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-nickname {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.auth-btn {
+  padding: 8px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
+  transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+}
+.auth-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 10px 24px rgba(102, 126, 234, 0.45);
+}
+.auth-btn:active {
+  transform: translateY(0);
+}
+
+.logout-btn {
+  color: #667eea;
+  font-weight: 600;
+}
+.logout-btn:hover {
+  color: #764ba2;
 }
 
 .nav-tab {
@@ -888,6 +1248,15 @@ onUnmounted(() => {
 
 .delete-btn .el-icon {
   font-size: 16px;
+}
+
+.upload-embed {
+  margin-top: -16px;
+}
+
+.upload-embed :deep(.upload-container) {
+  min-height: unset;
+  padding-top: 24px;
 }
 
 /* 占位视图 */
