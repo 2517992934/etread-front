@@ -24,10 +24,20 @@
         </div>
       </div>
 
-      <div class="layout">
+      <div class="layout" :class="{ 'toc-collapsed': tocCollapsed }">
         <div class="toc">
-          <div class="toc-title">目录</div>
-          <div class="toc-list">
+          <div class="toc-head">
+            <div class="toc-title" v-if="!tocCollapsed">目录</div>
+            <button
+              class="toc-toggle"
+              :class="{ 'toc-toggle--full': tocCollapsed }"
+              :aria-label="tocCollapsed ? '展开目录' : '收起目录'"
+              @click="toggleToc"
+            >
+              <span class="toc-toggle-icon">{{ tocCollapsed ? '›' : '‹' }}</span>
+            </button>
+          </div>
+          <div class="toc-list" v-show="!tocCollapsed">
             <button
                 v-for="c in chapters"
                 :key="c.chapterId"
@@ -119,6 +129,12 @@ const darkMode = ref(false);
 const fontSize = ref(18);
 const lineHeight = ref(1.9);
 const maxWidth = ref(900);
+
+const tocCollapsed = ref(false);
+
+function toggleToc() {
+  tocCollapsed.value = !tocCollapsed.value;
+}
 
 const readerStyles = computed(() => ({
   fontSize: `${fontSize.value}px`,
@@ -664,6 +680,19 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+.layout.toc-collapsed {
+  grid-template-columns: 56px 1fr;
+}
+
+.layout.toc-collapsed .toc {
+  padding: 0;
+}
+
+.layout.toc-collapsed .toc-head {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 .toc {
   background: rgba(255,255,255,0.9);
   border-radius: 18px;
@@ -675,10 +704,58 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+.toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .toc-title {
   font-weight: 800;
   color: #303133;
-  margin-bottom: 10px;
+}
+
+.toc-toggle {
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.95);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-weight: 800;
+  color: #606266;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.toc-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  font-size: 18px;
+}
+
+.toc-toggle--full {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toc-toggle--full .toc-toggle-icon {
+  width: auto;
+  font-size: 26px;
+}
+
+.online-container.dark .toc-toggle {
+  border-color: rgba(255,255,255,0.18);
+  background: rgba(22,22,28,0.65);
+  color: rgba(255,255,255,0.85);
 }
 
 .toc-list {

@@ -50,12 +50,29 @@
     <!-- 主内容区 -->
     <main class="main-content">
       <!-- 书架视图 -->
-      <div v-show="activeTab === 'library'" class="library-view">
+      <div v-show="activeTab === 'library'" class="library-view content-stack">
+        <div class="summary panel">
+          <div class="summary-left">
+            <div class="summary-title">{{ auth.user?.nickname ? `欢迎回来，${auth.user.nickname}` : '欢迎来到 ETRead' }}</div>
+<!--            <div class="summary-sub">把注意力留给阅读，把琐碎交给书架</div>-->
+          </div>
+          <div class="summary-cards">
+            <div class="summary-card">
+              <div class="summary-label">本地藏书</div>
+              <div class="summary-value">{{ books.length }}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">云端书架</div>
+              <div class="summary-value">{{ auth.user ? cloudShelfVisibleItems.length : '-' }}</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Import Area with drag-and-drop support -->
-        <div 
-          class="import-area" 
+        <div
+          class="import-area"
           :class="{ 'drag-over': isDragOver }"
-          @drop.prevent="handleDrop" 
+          @drop.prevent="handleDrop"
           @dragover.prevent="handleDragOver"
           @dragleave="handleDragLeave"
         >
@@ -96,14 +113,14 @@
             <h2>我的藏书</h2>
             <span class="book-count">{{ books.length }} 本</span>
           </div>
-          
+
           <div class="book-grid">
             <div v-for="book in books" :key="book.id" class="book-card">
               <div class="book-cover-wrapper" @click="openBook(book.id!)">
                 <div class="book-cover">
-                  <img 
-                    v-if="book.cover" 
-                    :src="getCoverUrl(book.id!)" 
+                  <img
+                    v-if="book.cover"
+                    :src="getCoverUrl(book.id!)"
                     :alt="book.title"
                     @error="handleImageError"
                   />
@@ -117,8 +134,8 @@
                 <div class="progress-ring" v-if="progressMap.get(book.id!) > 0">
                   <svg width="100%" height="100%" viewBox="0 0 36 36">
                     <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
-                    <circle 
-                      cx="18" cy="18" r="16" fill="none" 
+                    <circle
+                      cx="18" cy="18" r="16" fill="none"
                       stroke="#fff" stroke-width="2"
                       :stroke-dasharray="`${progressMap.get(book.id!)} 100`"
                       stroke-linecap="round"
@@ -128,7 +145,7 @@
                   <span class="progress-text">{{ Math.round(progressMap.get(book.id!) || 0) }}%</span>
                 </div>
               </div>
-              
+
               <div class="book-info">
                 <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
                 <p class="book-author" :title="book.author">{{ book.author }}</p>
@@ -139,8 +156,8 @@
                   <span class="format-badge">{{ book.format.toUpperCase() }}</span>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 class="delete-btn"
                 @click.stop="confirmDelete(book.id!)"
                 title="删除书籍"
@@ -151,7 +168,7 @@
           </div>
         </div>
 
-        <div class="cloud-shelf" v-if="!loading">
+        <div class="cloud-shelf panel" v-if="!loading">
           <div class="section-header">
             <h2>云端书架</h2>
             <div class="cloud-actions">
@@ -165,7 +182,8 @@
             <p>登录后可查看加入书架的线上书籍</p>
           </div>
 
-          <div v-else class="store-grid" v-loading="cloudShelfLoading">
+          <div v-else class="store-surface" v-loading="cloudShelfLoading">
+            <div class="store-grid">
             <div v-for="item of cloudShelfVisibleItems" :key="item.serverBookId" class="store-item" @click="openStoreDetail(item.serverBookId, 'library')">
               <div class="store-cover">
                 <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title" />
@@ -180,6 +198,7 @@
               <el-button class="danger-mini" @click.stop="removeCloudBook(item.serverBookId)">移除</el-button>
             </div>
 
+
             <div v-if="cloudShelfVisibleItems.length === 0 && !cloudShelfLoading" class="empty-state">
               <el-icon><Reading /></el-icon>
               <h3>暂无书籍</h3>
@@ -187,11 +206,13 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- 书城视图：搜索 + 列表 -->
-  <div v-show="activeTab === 'store'" class="store-view">
-    <div class="store-toolbar">
+  <div v-show="activeTab === 'store'" class="store-view content-stack">
+    <div class="store-surface" v-loading="storeSearching">
+      <div class="store-toolbar">
       <el-input v-model="storeSearch.title" placeholder="书名" :prefix-icon="Search" clearable />
       <el-input v-model="storeSearch.author" placeholder="作者" clearable />
       <el-select v-model="storeSearch.minscore" placeholder="最低评分" clearable>
@@ -204,7 +225,7 @@
       <el-button class="auth-btn" :loading="storeSearching" @click="runStoreSearch(1)">搜索</el-button>
       <el-button class="auth-btn" :disabled="storeSearching" @click="resetStoreSearch">重置</el-button>
     </div>
-    <div class="store-grid" v-loading="storeSearching">
+      <div class="store-grid">
       <div v-for="item of storeVisibleItems" :key="item.serverBookId" class="store-item" @click="openStoreDetail(item.serverBookId)">
         <div class="store-cover">
           <img v-if="item.coverUrl" :src="item.coverUrl" :alt="item.title" />
@@ -223,8 +244,8 @@
         <p>可尝试调整搜索条件，或清空条件后重新搜索</p>
       </div>
     </div>
-    <div class="store-pagination" v-if="storePageCount > 1">
-      <el-pagination
+      <div class="store-pagination" v-if="storePageCount > 1">
+        <el-pagination
         background
         layout="prev, pager, next"
         :page-count="storePageCount"
@@ -232,6 +253,7 @@
         :current-page="storePage"
         @current-change="onStorePageChange"
       />
+      </div>
     </div>
   </div>
 
@@ -241,6 +263,7 @@
   </div>
     </main>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -251,17 +274,17 @@ import { useProgress } from '@/composables/useProgress';
 import { useAuthStore } from '@/store/auth';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { logout } from '@/api/auth';
-import { 
-  Upload, 
-  Delete, 
-  Loading, 
-  Reading, 
+import {
+  Upload,
+  Delete,
+  Loading,
+  Reading,
   ShoppingCart,
   FolderOpened,
   VideoPlay,
   Search
 } from '@element-plus/icons-vue';
-import { searchBooks, getBookshelf, removeFromShelf } from '@/api/book';
+import { searchBooks, getBookshelf, removeFromShelf, listAllTags } from '@/api/book';
 import { db, type ServerBook } from '@/db';
 import StoreUpload from '@/views/StoreUpload.vue';
 
@@ -276,6 +299,23 @@ const storePage = ref(1);
 const storePageSize = 10;
 const storeHasNext = ref(false);
 const ratingOptions = Array.from({ length: 11 }, (_, i) => i * 0.5);
+
+const availableStoreTags = ref<string[]>([]);
+
+async function loadStoreTags() {
+  try {
+    const res = await listAllTags();
+    if (res.data?.code === 200 && Array.isArray(res.data.data)) {
+      availableStoreTags.value = res.data.data
+        .map((x: any) => String(x?.tagName || '').trim())
+        .filter(Boolean);
+    } else {
+      availableStoreTags.value = [];
+    }
+  } catch {
+    availableStoreTags.value = [];
+  }
+}
 
 const cloudShelfLoading = ref(false);
 const cloudShelfBooks = ref<ServerBook[]>([]);
@@ -319,12 +359,32 @@ function normalizeTags(v: string) {
     .map(s => s.trim())
     .filter(Boolean);
 
-  const normalized = raw.map((t) => {
-    if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) return t;
-    return `"${t}"`;
-  });
+  if (raw.length === 0) return [];
 
-  return Array.from(new Set(normalized));
+  const tagSet = new Set(availableStoreTags.value);
+
+  const pick = (input: string) => {
+    const t = String(input || '').trim();
+    if (!t) return '';
+
+    const candidates: string[] = [t];
+    const quoted = t.length >= 2 && t.startsWith('"') && t.endsWith('"');
+
+    if (quoted) {
+      const unquoted = t.slice(1, -1).trim();
+      if (unquoted) candidates.push(unquoted);
+    } else {
+      candidates.push(`"${t}"`);
+    }
+
+    for (const c of candidates) {
+      if (tagSet.has(c)) return c;
+    }
+
+    return quoted ? (t.slice(1, -1).trim() || t) : t;
+  };
+
+  return Array.from(new Set(raw.map(pick).filter(Boolean)));
 }
 
 async function runStoreSearch(page = 1) {
@@ -477,8 +537,9 @@ const coverUrlCache = ref<Map<number, string>>(new Map());
 const isDragOver = ref(false);
 const activeTab = ref('library');
 
-watch(activeTab, (v) => {
+watch(activeTab, async (v) => {
   if (v === 'store') {
+    await loadStoreTags();
     runStoreSearch(1);
   }
   if (v === 'library') {
@@ -507,7 +568,7 @@ function getCoverUrl(bookId: number): string {
     if (coverUrlCache.value.has(bookId)) {
       return coverUrlCache.value.get(bookId)!;
     }
-    
+
     // Find the book and create URL from Blob
     const book = books.value.find(b => b.id === bookId);
     if (book?.cover) {
@@ -518,7 +579,7 @@ function getCoverUrl(bookId: number): string {
   } catch (error) {
     console.error('Failed to create cover URL:', error);
   }
-  
+
   return '';
 }
 
@@ -583,9 +644,9 @@ async function handleFileSelect(event: Event): Promise<void> {
 async function processFile(file: File): Promise<void> {
   // Check if file is large (>50MB) to show progress
   const isLargeFile = file.size > 50 * 1024 * 1024;
-  
+
   let loadingMessage: any;
-  
+
   if (isLargeFile) {
     // Show progress message for large files
     loadingMessage = ElMessage({
@@ -594,7 +655,7 @@ async function processFile(file: File): Promise<void> {
       duration: 0,
       icon: Loading
     });
-    
+
     // Watch import progress and update message
     const progressInterval = setInterval(() => {
       if (loadingMessage && importing.value) {
@@ -621,7 +682,7 @@ async function processFile(file: File): Promise<void> {
   try {
     const result = await importBook(file);
     loadingMessage.close();
-    
+
     if (result.success) {
       ElMessage.success('Book imported successfully');
       // Load progress for the newly imported book
@@ -654,20 +715,20 @@ async function confirmDelete(bookId: number): Promise<void> {
         confirmButtonClass: 'el-button--danger'
       }
     );
-    
+
     console.log('[Bookshelf] 开始删除书籍:', bookId);
-    
+
     // Clean up cover URL before deleting
     cleanupCoverUrl(bookId);
     console.log('[Bookshelf] 封面 URL 已清理');
-    
+
     await deleteBook(bookId);
     console.log('[Bookshelf] 数据库记录已删除');
-    
+
     progressMap.value.delete(bookId);
     progressTextMap.value.delete(bookId);
     console.log('[Bookshelf] 内存缓存已清理');
-    
+
     ElMessage.success('书籍删除成功');
   } catch (error) {
     // User cancelled deletion
@@ -704,7 +765,7 @@ async function loadAllProgress(): Promise<void> {
         try {
           const progress = await getProgressPercentage(book.id);
           progressMap.value.set(book.id, progress);
-          
+
           const chapterTitle = await getProgressChapterTitle(book.id);
           if (chapterTitle) {
             progressTextMap.value.set(book.id, chapterTitle);
@@ -782,23 +843,69 @@ onUnmounted(() => {
 /* 全局容器 */
 .bookshelf-container {
   min-height: 100vh;
-  background: 
-    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6)),
-    url('/bookshelf-bg.jpg') center/cover fixed;
-  backdrop-filter: blur(0);
+  background: #0b1020;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bookshelf-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url('/bookshelf-bg.jpg') center/cover no-repeat;
+  filter: saturate(1.05) contrast(1.02) brightness(0.9);
+  transform: translate3d(0, 0, 0);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bookshelf-container::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.66)),
+    radial-gradient(760px 520px at 18% 22%, rgba(102, 126, 234, 0.42), transparent 62%),
+    radial-gradient(720px 540px at 84% 28%, rgba(118, 75, 162, 0.36), transparent 64%),
+    radial-gradient(560px 560px at 46% 86%, rgba(102, 126, 234, 0.26), transparent 66%);
+  filter: blur(22px) saturate(1.12);
+  opacity: 0.62;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+  animation: auroraFloat 14s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes auroraFloat {
+  0% { transform: translate3d(0, -6px, 0) scale(1.03); opacity: 0.58; }
+  50% { transform: translate3d(0, 6px, 0) scale(1.06); opacity: 0.66; }
+  100% { transform: translate3d(0, -6px, 0) scale(1.03); opacity: 0.58; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bookshelf-container::after { animation: none; }
+}
+
+.app-header,
+.main-content {
+  position: relative;
+  z-index: 1;
 }
 
 /* 顶部导航栏 */
 .app-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(22px) saturate(1.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.55);
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 30px rgba(16, 24, 40, 0.10),
+    0 1px 0 rgba(255, 255, 255, 0.65) inset;
 }
 
 .header-content {
@@ -835,7 +942,103 @@ onUnmounted(() => {
 
 .nav-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px) saturate(1.15);
+  box-shadow: 0 10px 26px rgba(16, 24, 40, 0.10);
+}
+
+.content-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.90));
+  backdrop-filter: blur(22px) saturate(1.12);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow:
+    0 18px 64px rgba(16, 24, 40, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.75) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.summary {
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.summary-left {
+  min-width: 0;
+}
+
+.summary-title {
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.summary-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(58, 63, 85, 0.78);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-cards {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.summary-card {
+  min-width: 120px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.14);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.12);
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: rgba(90, 95, 117, 0.9);
+  font-weight: 700;
+}
+
+.summary-value {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 900;
+  color: #303133;
+}
+
+.store-surface {
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.90));
+  backdrop-filter: blur(22px) saturate(1.12);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow:
+    0 18px 64px rgba(16, 24, 40, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.75) inset,
+    0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 /* 书城样式 */
@@ -845,13 +1048,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
+  margin-bottom: 14px;
+  padding: 12px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
-  border: 1px solid rgba(255,255,255,.35);
-  box-shadow: 0 10px 30px rgba(16,24,40,.12);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(102, 126, 234, 0.10), rgba(118, 75, 162, 0.05));
+  border: 1px solid rgba(102, 126, 234, 0.16);
+  box-shadow: 0 10px 24px rgba(16, 24, 40, 0.10);
 }
 
 .store-toolbar :deep(.el-input),
@@ -881,11 +1083,6 @@ onUnmounted(() => {
   border-color: rgba(102,126,234,.45);
 }
 .store-grid {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 24px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
@@ -894,6 +1091,17 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  box-shadow: 0 12px 26px rgba(16, 24, 40, 0.10);
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+
+.store-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(16, 24, 40, 0.14);
 }
 .store-cover {
   width: 100%;
@@ -909,7 +1117,7 @@ onUnmounted(() => {
 .store-item { cursor: pointer; }
 
 .cloud-shelf {
-  margin-top: 18px;
+  padding: 18px;
 }
 
 .danger-mini {
@@ -931,12 +1139,8 @@ onUnmounted(() => {
   margin-top: 14px;
   display: flex;
   justify-content: center;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255,255,255,.22), rgba(255,255,255,.08));
-  border: 1px solid rgba(255,255,255,.35);
-  box-shadow: 0 10px 24px rgba(16,24,40,.1);
-  backdrop-filter: blur(8px);
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .store-pagination :deep(.el-pagination.is-background .btn-prev),
@@ -1012,26 +1216,28 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  border: none;
+  padding: 9px 16px;
+  border: 1px solid transparent;
   background: transparent;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 500;
-  color: #606266;
-  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(48, 49, 51, 0.74);
+  transition: transform .2s ease, background .2s ease, box-shadow .2s ease, color .2s ease, border-color .2s ease;
   position: relative;
 }
 
 .nav-tab:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(102, 126, 234, 0.10);
+  color: rgba(102, 126, 234, 0.98);
+  transform: translateY(-1px);
 }
 
 .nav-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.98) 0%, rgba(118, 75, 162, 0.98) 100%);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(102, 126, 234, 0.28);
 }
 
 .nav-tab .el-icon {
@@ -1058,7 +1264,7 @@ onUnmounted(() => {
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
-  padding: 40px 5%;
+  padding: 28px 5% 44px;
 }
 
 /* 导入区域 */
@@ -1189,11 +1395,17 @@ onUnmounted(() => {
 
 .book-card {
   position: relative;
-  transition: transform 0.3s ease;
+  border-radius: 22px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  box-shadow: 0 14px 32px rgba(16, 24, 40, 0.10);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .book-card:hover {
   transform: translateY(-8px);
+  box-shadow: 0 22px 52px rgba(16, 24, 40, 0.16);
 }
 
 .book-cover-wrapper {

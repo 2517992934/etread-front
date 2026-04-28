@@ -66,6 +66,10 @@ export function getBookInfoBase(bookId: number) {
     return httpBook.get(`/book/info/${bookId}`);
 }
 
+export function listAllTags() {
+    return httpBook.get('/book/tags');
+}
+
 export function addToShelf(bookId: number) {
     const fd = new FormData();
     fd.append('bookId', String(bookId));

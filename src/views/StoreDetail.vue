@@ -20,7 +20,7 @@
             <el-button type="primary" class="brand-btn" @click="readNow">立即阅读</el-button>
             <el-button class="brand-btn" @click="openReviewDialog">写书评</el-button>
             <el-button class="brand-btn" :disabled="collected || collecting" @click="collect">{{ collected ? '已收藏' : '收藏到书架' }}</el-button>
-            <el-button class="danger-btn" @click="submitDelete">删除书籍</el-button>
+            <el-button class="danger-btn" :class="{ 'danger-btn--dim': !isUploader }" @click="submitDelete">删除书籍</el-button>
             <el-button class="brand-btn" @click="goBack">{{ backText }}</el-button>
           </div>
         </div>
@@ -83,7 +83,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getBookInfoBase, deleteBookApi, addBookReview, listBookReviews, addToShelf, getBookshelf } from '@/api/book';
+import { getBookDetail, getBookInfoBase, deleteBookApi, addBookReview, listBookReviews, addToShelf, getBookshelf } from '@/api/book';
 import { useAuthStore } from '@/store/auth';
 import { db } from '@/db';
 
@@ -112,6 +112,12 @@ const avgScore = computed(() => {
 
 const ratingCount = computed(() => Number(item.value?.ratingCount ?? item.value?.rating_count ?? 0));
 const avgScoreText = computed(() => avgScore.value.toFixed(1));
+
+const isUploader = computed(() => {
+  const uid = auth.user?.id ? Number(auth.user.id) : 0;
+  const publisher = item.value?.publisher != null ? Number(item.value.publisher) : 0;
+  return !!uid && !!publisher && uid === publisher;
+});
 
 const reviewsLoading = ref(false);
 const reviews = ref<any[]>([]);
@@ -206,6 +212,13 @@ onMounted(async () => {
   } catch {}
 
   try {
+    const res = await getBookDetail(id.value);
+    if (res.data?.code === 200 && res.data.data) {
+      detail.value = { ...(detail.value || {}), ...res.data.data };
+    }
+  } catch {}
+
+  try {
     const res = await getBookInfoBase(id.value);
     if (res.data?.code === 200 && res.data.data) {
       detail.value = { ...(detail.value || {}), ...res.data.data };
@@ -265,6 +278,10 @@ async function collect() {
 async function submitDelete() {
   if (!bookId.value) {
     ElMessage.error('书籍不存在');
+    return;
+  }
+  if (!isUploader.value) {
+    ElMessage.warning('只有上传人才能删除书籍');
     return;
   }
   try {
@@ -459,6 +476,17 @@ async function submitDelete() {
   box-shadow: 0 6px 18px rgba(245,108,108,.35);
 }
 .danger-btn:hover { filter: brightness(1.05); }
+
+.danger-btn--dim {
+  opacity: 0.45;
+  filter: grayscale(0.2);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.danger-btn--dim:hover {
+  filter: grayscale(0.2);
+}
 
 .cancel-btn {
   background: rgba(255,255,255,0.9);

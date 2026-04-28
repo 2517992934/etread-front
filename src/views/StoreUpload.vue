@@ -29,7 +29,12 @@
           <el-input v-model="form.author" placeholder="留空默认为 佚名" />
         </el-form-item>
         <el-form-item label="标签">
-          <el-input v-model="form.tagsStr" placeholder="多标签用逗号分隔（可选）" />
+          <div class="tag-picker">
+            <el-checkbox-group v-model="form.tags">
+              <el-checkbox v-for="t in availableTags" :key="t" :label="t">{{ t }}</el-checkbox>
+            </el-checkbox-group>
+            <div v-if="availableTags.length === 0" class="tag-empty">暂无可选标签</div>
+          </div>
         </el-form-item>
         <el-form-item label="简介">
           <el-input type="textarea" v-model="form.description" />
@@ -43,14 +48,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 const emit = defineEmits<{ (e: 'uploaded'): void }>();
 import { ElMessage } from 'element-plus';
 import { FolderOpened, Plus } from '@element-plus/icons-vue';
 import ePub from 'epubjs';
-import { uploadBook } from '@/api/book';
+import { listAllTags, uploadBook } from '@/api/book';
 import { db } from '@/db';
 
 const router = useRouter();
@@ -60,8 +65,25 @@ const form = ref({
   cover: null as File | null,
   title: '',
   author: '',
-  tagsStr: '',
+  tags: [] as string[],
   description: ''
+});
+
+const availableTags = ref<string[]>([]);
+
+async function loadTags() {
+  try {
+    const res = await listAllTags();
+    if (res.data?.code === 200 && Array.isArray(res.data.data)) {
+      availableTags.value = res.data.data
+        .map((x: any) => String(x?.tagName || '').trim())
+        .filter(Boolean);
+    }
+  } catch {}
+}
+
+onMounted(() => {
+  loadTags();
 });
 const submitting = ref(false);
 const bookInput = ref<HTMLInputElement | null>(null);
@@ -274,12 +296,7 @@ async function submitUpload() {
       status: 0
     });
 
-    const tags = Array.from(new Set(
-      (form.value.tagsStr || '')
-        .split(/[,，]/)
-        .map(s => s.trim())
-        .filter(Boolean)
-    ));
+    const tags = Array.from(new Set((form.value.tags || []).map(s => String(s).trim()).filter(Boolean)));
     const res = await uploadBook({
       file: uploadFile,
       cover: cover || undefined,
@@ -304,7 +321,7 @@ async function submitUpload() {
         author: bookInfo.author || author,
         coverUrl: coverUrl || undefined,
         description: bookInfo.description || description || undefined,
-        tags: Array.isArray(bookInfo.tags) ? bookInfo.tags.join(',') : (bookInfo.tags || undefined),
+        tags: Array.isArray(bookInfo.tags) ? bookInfo.tags.join(',') : (bookInfo.tags || (tags.length ? tags.join(',') : undefined)),
         publisher: bookInfo.publisher || undefined,
         status: typeof bookInfo.status === 'number' ? bookInfo.status : undefined,
         addTime: Date.now(),
@@ -409,6 +426,26 @@ async function submitUpload() {
 }
 .file-icon { color: #667eea; font-size: 20px; }
 .file-text { color: #303133; font-weight: 600; }
+
+.tag-picker {
+  width: 100%;
+}
+
+.tag-picker :deep(.el-checkbox-group) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.95);
+}
+
+.tag-empty {
+  margin-top: 8px;
+  color: #909399;
+  font-size: 12px;
+}
 
 .cover-picker {
   width: 160px; height: 160px;
