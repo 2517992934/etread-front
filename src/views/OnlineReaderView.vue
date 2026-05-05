@@ -533,58 +533,53 @@ onUnmounted(() => {
 .online-container {
   height: 100vh;
   overflow: hidden;
-  background:
-      linear-gradient(rgba(0,0,0,.4), rgba(0,0,0,.6)),
-      url('/bookshelf-bg.jpg') center/cover fixed;
+  background: linear-gradient(180deg, #faf8f5 0%, #f3efe9 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px 5%;
+  padding: 20px 5%;
   box-sizing: border-box;
 }
 
 .online-card {
-  width: 1100px;
-  height: calc(100vh - 48px);
-  max-height: calc(100vh - 48px);
-  background: rgba(255,255,255,.95);
-  backdrop-filter: blur(20px);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.1);
-  border: 1px solid rgba(0,0,0,.05);
-  padding: 18px;
+  width: 1000px;
+  height: calc(100vh - 40px);
+  max-height: calc(100vh - 40px);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .online-container.dark .online-card {
-  background: rgba(16, 16, 22, 0.92);
-  border-color: rgba(255,255,255,0.10);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+  background: #1a1a1f;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 .online-container.dark .ctrl {
-  background: rgba(22,22,28,0.72);
-  border-color: rgba(255,255,255,0.10);
+  background: #2a2a30;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .online-container.dark .ctrl-label {
-  color: rgba(255,255,255,0.75);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .online-container.dark .toc {
-  background: rgba(22,22,28,0.68);
-  border-color: rgba(255,255,255,0.10);
+  background: #222228;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .online-container.dark .toc-title {
-  color: rgba(255,255,255,0.90);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .online-container.dark .toc-item {
-  background: rgba(0,0,0,0.22);
-  border-color: rgba(255,255,255,0.10);
+  background: #333338;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .online-container.dark .toc-text {
@@ -637,7 +632,7 @@ onUnmounted(() => {
   width: 150px;
 }
 :deep(.ctrl .el-switch) {
-  --el-switch-on-color: #667eea;
+  --el-switch-on-color: #8b7355;
 }
 
 .topbar {
@@ -651,7 +646,7 @@ onUnmounted(() => {
 .top-title {
   font-size: 20px;
   font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -664,7 +659,7 @@ onUnmounted(() => {
 }
 
 .brand-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   border: none;
   color: #fff;
   border-radius: 12px;
@@ -895,7 +890,7 @@ onUnmounted(() => {
   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
 }
 :deep(.content-body a) {
-  color: #667eea;
+  color: #8b7355;
   text-decoration: none;
 }
 :deep(.content-body a:hover) {
@@ -1005,7 +1000,7 @@ onUnmounted(() => {
   color: rgba(255,255,255,0.60);
 }
 .like-btn {
-  color: #667eea;
+  color: #8b7355;
 }
 .empty {
   color: #909399;

@@ -313,128 +313,142 @@ async function submitDelete() {
 <style scoped>
 .detail-container {
   min-height: 100vh;
-  background:
-      linear-gradient(rgba(0,0,0,.4), rgba(0,0,0,.6)),
-      url('/bookshelf-bg.jpg') center/cover fixed;
+  background: linear-gradient(135deg, #faf8f5 0%, #f3efe9 100%);
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 60px 5%;
+  align-items: flex-start;
+  padding: 40px 5%;
 }
 .detail-card {
-  width: 980px;
-  background: rgba(255,255,255,.95);
-  backdrop-filter: blur(20px);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.1);
-  border: 1px solid rgba(0,0,0,.05);
-  padding: 24px;
+  width: 900px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  padding: 32px;
 }
 .detail-header {
   display: flex;
-  gap: 24px;
+  gap: 32px;
 }
 .cover {
-  width: 280px;
+  width: 220px;
+  flex-shrink: 0;
   aspect-ratio: 2/3;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
 }
 .cover img { width: 100%; height: 100%; object-fit: cover; }
 .default-cover {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 64px; font-weight: 800;
+  color: #fff; font-size: 56px; font-weight: 800;
 }
 .meta {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 .title {
   font-size: 24px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   -webkit-background-clip: text; background-clip: text;
-  color: transparent; -webkit-text-fill-color: transparent;
-  margin: 0;
+  color: transparent; margin: 0;
 }
-.author, .type, .uploader { color: #606266; }
-.desc { color: #303133; line-height: 1.6; }
-.actions { margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
+.author, .type, .uploader { color: var(--text-secondary); font-size: 14px; }
+.desc { color: var(--text-regular); line-height: 1.8; margin-top: 8px; }
+.actions { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+.brand-btn {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  padding: 10px 20px !important;
+}
+
+.brand-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.35) !important;
+}
+
+.danger-btn {
+  background: linear-gradient(135deg, #f56c6c 0%, #fc8b8b 100%) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+}
 
 .reviews {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0,0,0,0.06);
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 .reviews-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 .reviews-title {
-  font-size: 16px;
-  font-weight: 900;
-  color: #303133;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 .reviews-summary {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: #606266;
 }
 .reviews-score {
-  font-weight: 900;
-  color: #303133;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 .reviews-count {
-  color: #909399;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 .reviews-list {
-  background: rgba(255,255,255,0.75);
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 18px;
-  padding: 12px;
+  background: #f8f9fc;
+  border-radius: 16px;
+  padding: 16px;
   min-height: 80px;
 }
 .reviews-empty {
-  color: #909399;
+  color: var(--text-secondary);
   text-align: center;
-  padding: 18px 0;
+  padding: 24px 0;
 }
 .review-item {
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 14px;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.9);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px;
 }
 .review-item + .review-item {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 .review-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
 }
 .review-meta {
   display: flex;
-  gap: 10px;
-  color: #909399;
-  font-size: 12px;
-  white-space: nowrap;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 .review-content {
-  margin-top: 8px;
-  color: #303133;
-  line-height: 1.6;
+  margin-top: 10px;
+  color: var(--text-regular);
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 .reviews-pagination {
@@ -458,13 +472,13 @@ async function submitDelete() {
   width: 42px;
 }
 :deep(.el-dialog__footer .brand-btn) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   border: none;
   color: #fff;
   border-radius: 12px;
 }
 .brand-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   border: none; color: #fff; border-radius: 12px;
   box-shadow: 0 6px 18px rgba(102,126,234,.35);
 }
@@ -498,7 +512,7 @@ async function submitDelete() {
   padding-bottom: 4px;
 }
 :deep(.brand_dialog .el-message-box__title) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent;
   font-weight: 800;
@@ -507,7 +521,7 @@ async function submitDelete() {
   display: flex; gap: 8px;
 }
 :deep(.brand_dialog .el-message-box__btns .el-button--primary) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%) !important;
   border: none !important;
   color: #fff !important;
   border-radius: 12px !important;
@@ -538,7 +552,7 @@ async function submitDelete() {
   padding-bottom: 4px;
 }
 :deep(.brand_dialog .el-message-box__title) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent;
   font-weight: 800;
@@ -547,7 +561,7 @@ async function submitDelete() {
   display: flex; gap: 8px;
 }
 :deep(.brand_dialog .el-message-box__btns .el-button--primary) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%) !important;
   border: none !important;
   color: #fff !important;
   border-radius: 12px !important;
@@ -564,7 +578,7 @@ async function submitDelete() {
 <style>
 /* 全局样式：MessageBox 是 Teleport 到 body 的元素，scoped 无法覆盖，这里提供非 scoped 覆盖 */
 .brand_dialog .el-message-box__btns .el-button--primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%) !important;
   border: none !important;
   color: #fff !important;
   border-radius: 12px !important;
@@ -577,14 +591,14 @@ async function submitDelete() {
   border-radius: 12px !important;
 }
 .brand_dialog .el-message-box__title {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #8b7355 0%, #6b5640 100%);
   -webkit-background-clip: text; background-clip: text;
   color: transparent; -webkit-text-fill-color: transparent;
   font-weight: 800;
 }
 /* 将默认的黄色警示图标改为品牌色，并稍微缩小，避免突兀 */
 .brand_dialog .el-message-box__status {
-  color: #667eea !important;
+  color: #8b7355 !important;
   font-size: 18px !important;
 }
 </style>

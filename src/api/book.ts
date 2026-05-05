@@ -134,3 +134,11 @@ export function addBookReview(params: { bookId: number; rating: number; content:
 export function listBookReviews(bookId: number, page = 1, size = 10) {
     return httpBook.get(`/book/review/list/${bookId}`, { params: { page, size } });
 }
+
+export function getHotList(limit?: number) {
+    return httpBook.get('/book/hotList', { params: { limit } });
+}
+
+export function getRecommend(limit?: number) {
+    return httpBook.get('/book/recommend', { params: { limit } });
+}
